@@ -1,13 +1,12 @@
 // SourceFile.java
 package com.itestra.software_analyse_challenge.model;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class SourceFile {
     private final String path;
     private final String packageName;
-    private final Set<String> imports;
+    private final List<String> dependencies;
     private final Project project;
     private int numberOfLines;
 
@@ -15,14 +14,10 @@ public class SourceFile {
         this.path = path;
         this.packageName = packageName;
         this.project = project;
-        this.imports = new HashSet<>();
+        this.dependencies = new ArrayList<>();
     }
 
     private Set<String> projectDependencies = new HashSet<>();
-
-    public Set<String> getProjectDependencies() {
-        return projectDependencies;
-    }
 
     public void setNumberOfLines(int numberOfLines) {
         this.numberOfLines = numberOfLines;
@@ -36,10 +31,12 @@ public class SourceFile {
 
     public String getPath() { return path; }
     public String getPackageName() { return packageName; }
-    public Set<String> getImports() { return imports; }
     public Project getProject() { return project; }
     public int getNumberOfLines(){return numberOfLines;}
-    public void addImport(String importStatement) {
-        imports.add(importStatement);
+    public List<String> getProjectDependencies() {
+        return dependencies;
+    }
+    public void addImport(String dependency) {
+        dependencies.add(dependency);
     }
 }
