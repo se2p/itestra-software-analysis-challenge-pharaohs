@@ -1,29 +1,26 @@
 package com.itestra.software_analyse_challenge.counting;
 
-import java.io.File;
+import com.itestra.software_analyse_challenge.model.Project;
+import com.itestra.software_analyse_challenge.model.SourceFile;
+
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class LineCountingService {
-    private final LineCounterStrategy counter;
 
-    public LineCountingService(LineCounterStrategy counter) {
-        this.counter = counter;
+    private final LineCounterStrategy lineCounter;
+
+    public LineCountingService(LineCounterStrategy lineCounter) {
+        this.lineCounter = lineCounter;
     }
 
-    public Map<String, Integer> countLines(Map<String, List<File>> projectToFiles, Path basePath) {
-        Map<String, Integer> result = new HashMap<>();
-
-        for (List<File> files : projectToFiles.values()) {
-            for (File file : files) {
-                int output = counter.countLines(file);
-                String relativePath = basePath.relativize(file.toPath()).toString();
-                result.put(relativePath, output);
+    public void countLines(List<Project> projects) {
+        for (Project project : projects) {
+            for (SourceFile sourceFile : project.getFiles()) {
+                Path filePath = Path.of(sourceFile.getPath());
+                int count = lineCounter.countLines(filePath);
+                sourceFile.setNumberOfLines(count);  // ← sets value directly
             }
         }
-
-        return result;
     }
 }

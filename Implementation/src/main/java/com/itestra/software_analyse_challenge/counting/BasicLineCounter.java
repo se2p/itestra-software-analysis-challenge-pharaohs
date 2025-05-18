@@ -1,32 +1,20 @@
-package com.itestra.software_analyse_challenge.counting;
+package com.itestra.software_analyse_challenge.service;
 
-import com.itestra.software_analyse_challenge.Output;
+import com.itestra.software_analyse_challenge.counting.LineCounterStrategy;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class BasicLineCounter implements LineCounterStrategy{
-    public int countLines(File file){
-        int counter = 0;
-        Path relativePath = file.toPath();
-        System.out.println(relativePath);
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = reader.readLine() )!=null) {
-                line = line.trim();
-                if (!line.isEmpty() && !line.startsWith("//")){
-                    counter++;
-                }
-            }
+    public int countLines(Path path) {
+        try {
+            return (int) Files.lines(path)
+                    .map(String::trim)
+                    .filter(line -> !line.isEmpty() && !line.startsWith("//"))
+                    .count();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
-
-        return counter;
     }
-
 }

@@ -1,7 +1,7 @@
 package com.itestra.software_analyse_challenge.counting;
 
-import java.io.File;
+import java.nio.file.Path;
 
 public interface LineCounterStrategy {
-    int countLines(File file) ;
+    int countLines(Path path) ;
 }
