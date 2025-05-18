@@ -1,41 +1,67 @@
 package com.itestra.software_analyse_challenge;
 
-import com.itestra.software_analyse_challenge.counting.BasicLineCounter;
-import com.itestra.software_analyse_challenge.counting.LineCounterStrategy;
 import com.itestra.software_analyse_challenge.counting.LineCountingService;
+import com.itestra.software_analyse_challenge.model.Project;
+import com.itestra.software_analyse_challenge.model.SourceFile;
 import org.apache.commons.cli.*;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class SourceCodeAnalyser {
     //iterate over each base directory to get the files in it
-    private static Map<String, List<File>> collectJavaFilesPerProject(File baseDir) {
-        Map<String, List<File>> filesPerProjectMap= new HashMap<>();
-        for(File projectDir: baseDir.listFiles()){
-            if (projectDir.isDirectory()){
-                List<File> javaFiles = new ArrayList<>();
-                collectFilesPerProjectRecursively(projectDir, javaFiles);
-                filesPerProjectMap.put(projectDir.getName(), javaFiles);
+    public static List<Project> collectJavaFilesPerProject(File baseDir) {
+        List<Project> projects = new ArrayList<>();
 
+        File[] projectDirs = baseDir.listFiles();
+        if (projectDirs != null) {
+            for (File projectDir : projectDirs) {
+                if (projectDir.isDirectory()) {
+                    List<SourceFile> javaFiles = new ArrayList<>();
+                    Project proj = new Project(projectDir.getName(), javaFiles, projectDir);
+                    projects.add(proj);
+
+                    collectFilesRecursively(projectDir, proj, javaFiles);
+                }
             }
         }
-        return filesPerProjectMap;
+
+        return projects;
     }
 
-    //takes the ref of the list of files per project to add recursively the inner files
-    public static void collectFilesPerProjectRecursively(File insiderDirInProject, List<File> files){
-        for(File dir: insiderDirInProject.listFiles()){
-            if (dir.isDirectory()){
-                collectFilesPerProjectRecursively(dir, files);
-            }
-            else if(dir.getName().endsWith(".java")){
-                files.add(dir);
+    private static void collectFilesRecursively(File currentDir, Project project, List<SourceFile> javaFiles) {
+        File[] files = currentDir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    collectFilesRecursively(file, project, javaFiles);
+                } else if (file.getName().endsWith(".java")) {
+                    String path = file.getPath();
+                    String packageName = extractPackageName(file);
+                    javaFiles.add(new SourceFile(path, packageName, project));
+                }
             }
         }
     }
 
+    private static String extractPackageName(File file) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("package ")) {
+                    return line.replace("package", "").replace(";", "").trim();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
     /**
      * Your implementation
      *
@@ -49,29 +75,27 @@ public class SourceCodeAnalyser {
         // You can extend the Output object using the functions lineNumberBonus(int), if you did
         // the bonus exercise.
 
-            Map<String, Output> result = new HashMap<>();
-            File inputDir = input.getInputDirectory();
-            Map<String, List<File>> projectToFiles = collectJavaFilesPerProject(inputDir);
+        Map<String, Output> result = new HashMap<>();
+        File inputDir = input.getInputDirectory();
 
-            // Count lines
-            LineCounterStrategy counter = new BasicLineCounter();
-            LineCountingService countingService = new LineCountingService(counter);
-            Map<String, Integer> lineCounts = countingService.countLines(projectToFiles, inputDir.toPath());
+        // Count lines
+        List<Project> projects = SourceCodeAnalyser.collectJavaFilesPerProject(inputDir);
+        LineCountingService service = new LineCountingService(new com.itestra.software_analyse_challenge.service.BasicLineCounter());
+        service.countLines(projects);
 
-//        // Analyze dependencies
-//        DependencyAnalyzer dependencyAnalyzer = new DependencyAnalyzer(inputDir.toPath());
-//        dependencyAnalyzer.analyzeProjects(projectToFiles);
-//        Map<String, Set<String>> dependencies = dependencyAnalyzer.getFileDependencies();
-
-        // Combine results
-        for (Map.Entry<String, Integer> entry : lineCounts.entrySet()) {
-            String fileName = entry.getKey();
-            int lineCount = entry.getValue();
-            result.put(fileName, new Output(lineCount, null));
-//            Set<String> fileDependencies = dependencies.getOrDefault(fileName, new HashSet<>());
-//            result.put(fileName, new Output(lineCount, new ArrayList<>(fileDependencies)));
+        // Debugging for counting
+        for (Project p : projects) {
+            for (SourceFile sf : p.getFiles()) {
+                System.out.println(sf.getPath() + ": " + sf.getNumberOfLines());
+            }
         }
-            return result;
+        for (Project p : projects) {
+            for (SourceFile sf : p.getFiles()) {
+                new Output(sf.getNumberOfLines(), sf.getProjectDependencies());
+                System.out.println(sf.getPath() + ": " + sf.getNumberOfLines());
+            }
+        }
+        return result;
 
     }
 
