@@ -1,5 +1,8 @@
 package com.itestra.software_analyse_challenge;
 
+import com.itestra.software_analyse_challenge.counting.BasicLineCounter;
+import com.itestra.software_analyse_challenge.counting.LineCounterStrategy;
+import com.itestra.software_analyse_challenge.counting.LineCountingService;
 import org.apache.commons.cli.*;
 
 import java.io.File;
@@ -7,6 +10,31 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SourceCodeAnalyser {
+    //iterate over each base directory to get the files in it
+    private static Map<String, List<File>> collectJavaFilesPerProject(File baseDir) {
+        Map<String, List<File>> filesPerProjectMap= new HashMap<>();
+        for(File projectDir: baseDir.listFiles()){
+            if (projectDir.isDirectory()){
+                List<File> javaFiles = new ArrayList<>();
+                collectFilesPerProjectRecursively(projectDir, javaFiles);
+                filesPerProjectMap.put(projectDir.getName(), javaFiles);
+
+            }
+        }
+        return filesPerProjectMap;
+    }
+
+    //takes the ref of the list of files per project to add recursively the inner files
+    public static void collectFilesPerProjectRecursively(File insiderDirInProject, List<File> files){
+        for(File dir: insiderDirInProject.listFiles()){
+            if (dir.isDirectory()){
+                collectFilesPerProjectRecursively(dir, files);
+            }
+            else if(dir.getName().endsWith(".java")){
+                files.add(dir);
+            }
+        }
+    }
 
     /**
      * Your implementation
@@ -21,7 +49,30 @@ public class SourceCodeAnalyser {
         // You can extend the Output object using the functions lineNumberBonus(int), if you did
         // the bonus exercise.
 
-        return Collections.emptyMap();
+            Map<String, Output> result = new HashMap<>();
+            File inputDir = input.getInputDirectory();
+            Map<String, List<File>> projectToFiles = collectJavaFilesPerProject(inputDir);
+
+            // Count lines
+            LineCounterStrategy counter = new BasicLineCounter();
+            LineCountingService countingService = new LineCountingService(counter);
+            Map<String, Integer> lineCounts = countingService.countLines(projectToFiles, inputDir.toPath());
+
+//        // Analyze dependencies
+//        DependencyAnalyzer dependencyAnalyzer = new DependencyAnalyzer(inputDir.toPath());
+//        dependencyAnalyzer.analyzeProjects(projectToFiles);
+//        Map<String, Set<String>> dependencies = dependencyAnalyzer.getFileDependencies();
+
+        // Combine results
+        for (Map.Entry<String, Integer> entry : lineCounts.entrySet()) {
+            String fileName = entry.getKey();
+            int lineCount = entry.getValue();
+            result.put(fileName, new Output(lineCount, null));
+//            Set<String> fileDependencies = dependencies.getOrDefault(fileName, new HashSet<>());
+//            result.put(fileName, new Output(lineCount, new ArrayList<>(fileDependencies)));
+        }
+            return result;
+
     }
 
 
