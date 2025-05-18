@@ -7,19 +7,31 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class LineCountingService {
-
+    public enum CountMode {
+        BASIC,
+        BONUS
+    }
+    private final CountMode mode;
     private final LineCounterStrategy lineCounter;
 
-    public LineCountingService(LineCounterStrategy lineCounter) {
-        this.lineCounter = lineCounter;
+    public LineCountingService(LineCounterStrategy strategy, CountMode mode) {
+        this.lineCounter = strategy;
+        this.mode = mode;
+
     }
+
 
     public void countLines(List<Project> projects) {
         for (Project project : projects) {
             for (SourceFile sourceFile : project.getFiles()) {
                 Path filePath = Path.of(sourceFile.getPath());
                 int count = lineCounter.countLines(filePath);
-                sourceFile.setNumberOfLines(count);  // ← sets value directly
+
+                if (mode == CountMode.BASIC) {
+                    sourceFile.setNumberOfLines(count);
+                } else {
+                    sourceFile.setBonusNumberOfLines(count);
+                }
             }
         }
     }

@@ -1,6 +1,4 @@
-package com.itestra.software_analyse_challenge.service;
-
-import com.itestra.software_analyse_challenge.counting.LineCounterStrategy;
+package com.itestra.software_analyse_challenge.counting;
 
 import java.io.IOException;
 import java.nio.file.Files;

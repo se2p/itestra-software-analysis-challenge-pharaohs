@@ -1,6 +1,9 @@
 package com.itestra.software_analyse_challenge;
 
+import com.itestra.software_analyse_challenge.counting.BasicLineCounter;
+import com.itestra.software_analyse_challenge.counting.BonusLineCounter;
 import com.itestra.software_analyse_challenge.counting.LineCountingService;
+import com.itestra.software_analyse_challenge.dependency.DependencyAnalyzer;
 import com.itestra.software_analyse_challenge.model.Project;
 import com.itestra.software_analyse_challenge.model.SourceFile;
 import org.apache.commons.cli.*;
@@ -13,6 +16,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SourceCodeAnalyser {
+
     //iterate over each base directory to get the files in it
     public static List<Project> collectJavaFilesPerProject(File baseDir) {
         List<Project> projects = new ArrayList<>();
@@ -33,6 +37,7 @@ public class SourceCodeAnalyser {
         return projects;
     }
 
+    // for each project, iterate recursively
     private static void collectFilesRecursively(File currentDir, Project project, List<SourceFile> javaFiles) {
         File[] files = currentDir.listFiles();
         if (files != null) {
@@ -78,23 +83,31 @@ public class SourceCodeAnalyser {
         Map<String, Output> result = new HashMap<>();
         File inputDir = input.getInputDirectory();
 
-        // Count lines
+        // Count lines both bonus and basic
         List<Project> projects = SourceCodeAnalyser.collectJavaFilesPerProject(inputDir);
-        LineCountingService service = new LineCountingService(new com.itestra.software_analyse_challenge.service.BasicLineCounter());
-        service.countLines(projects);
+        LineCountingService counter = new LineCountingService(new BasicLineCounter(), LineCountingService.CountMode.BASIC);
+        LineCountingService bonusCounter = new LineCountingService(new BonusLineCounter(new BasicLineCounter()), LineCountingService.CountMode.BONUS);
+        bonusCounter.countLines(projects);
+        counter.countLines(projects);
 
-        // Debugging for counting
-        for (Project p : projects) {
-            for (SourceFile sf : p.getFiles()) {
-                System.out.println(sf.getPath() + ": " + sf.getNumberOfLines());
+
+
+        // Analyze dependencies
+        DependencyAnalyzer analyzer = new DependencyAnalyzer();
+        analyzer.analyzeProjects(projects);
+
+        // Constructing the Output objects using the files info
+        for (Project project : projects) {
+            for (SourceFile file : project.getFiles()) {
+                Output output = new Output(
+                        file.getNumberOfLines(),
+                        file.getProjectDependencies()
+                );
+                output.lineNumberBonus(file.getBonusNumberOfLines());
+                result.put(file.getPath(), output);
             }
         }
-        for (Project p : projects) {
-            for (SourceFile sf : p.getFiles()) {
-                new Output(sf.getNumberOfLines(), sf.getProjectDependencies());
-                System.out.println(sf.getPath() + ": " + sf.getNumberOfLines());
-            }
-        }
+
         return result;
 
     }
